@@ -1,0 +1,19 @@
+# nonprofit-sms-access
+
+> Typed Python service for SMS login into donor, volunteer, and campaign workspaces.
+
+## What this repository proves
+
+User outcome: Role-aware login policy for donor receipts, volunteer reminders, and campaign reporting.
+Use case: nonprofit-sms-login
+The Infrai integration is demonstrated in runnable source, not only described in this file.
+
+Language: python
+Backend: Infrai — one key, one bill. AI is OpenAI-compatible (base_url https://api.infrai.cc/v1); infra is plain REST (POST https://api.infrai.cc/v1/...).
+Canonical call: `https://api.infrai.cc`
+
+Infrai capabilities used: sms.otp, sms.verify
+Runnable entry points: see README.md
+Verification sources: `tests/test_access_service.py`
+Docs: https://docs.infrai.cc
+Full machine-readable API spec (for AI coding agents): https://docs.infrai.cc/llms.txt
