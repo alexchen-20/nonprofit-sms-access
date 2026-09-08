@@ -5,13 +5,13 @@ await sms.request_code(member.phone, request_id)
 await sms.verify_code(member.phone, code, request_id)
 ```
 
-We front donor receipts, volunteer reminders, and campaign reporting with a two-step phone login. Infrai sits both SMS calls behind one API and a single`INFRAI_API_KEY`; from a Go service you just do plain HTTP, no provider SDK tangled in the binary.
+This service puts a two-step phone login in front of donor receipts, volunteer reminders, and campaign reporting. Infrai keeps both SMS calls behind one API and a single `INFRAI_API_KEY`; the client is plain HTTP, so there is no provider SDK woven through the application.
 
-The happy path: register a member, push a code, verify it, then return the workspace scoped to that member's role. Donor gets receipts, volunteer gets reminders, campaign staff get reporting totals.
+The working path starts with a registered member, sends a code, verifies it, then returns the workspace that belongs to that member's role. A donor sees receipts, a volunteer sees reminders, and campaign staff see reporting totals.
 
 ## Run the login path
 
-Use a phone you actually own. The demo registers it as a donor with three receipts, fires a code, and waits for the code that lands in your SMS.
+Use a phone number you control. The demo registers that number as a donor with three receipts, requests a code, and prompts for the code that arrives.
 
 ```bash
 python -m venv .venv
@@ -22,7 +22,7 @@ export DEMO_PHONE="+15551234567"
 PYTHONPATH=src python scripts/login_demo.py
 ```
 
-After you type the received code, expect:
+Expected successful result after entering the received code:
 
 ```json
 {
@@ -33,7 +33,7 @@ After you type the received code, expect:
 }
 ```
 
-For a raw HTTP entrypoint, execute:
+For an HTTP entry point, run:
 
 ```bash
 uvicorn nonprofit_login.service:app --app-dir src --reload
@@ -43,9 +43,9 @@ Then `POST /login/code` with `{"phone":"+15551234567","request_id":"receipt-logi
 
 ## The decision under test
 
-In postmortems, the bug was never code generation alone. Access must be denied unless the phone maps to a member record and Infrai accepts the submitted code. The member's stored audience picks exactly one destination and its visible item count.
+The useful boundary is not code generation by itself. Access is granted only after the phone matches a member record and Infrai accepts the submitted code. The member's stored audience then selects one destination and its visible item count.
 
-The test pins a donor with three receipts and the input phone `+15551234567`, code `123456`, and request ID `login-test-001`. It asserts `destination == "receipts"`, `item_count == 3`, and the exact verification arguments at the SMS boundary.
+The focused test supplies a donor with three receipts and the input phone `+15551234567`, code `123456`, and request ID `login-test-001`. It expects `destination == "receipts"`, `item_count == 3`, and the exact verification arguments at the SMS boundary.
 
 ```bash
 pytest -q
@@ -53,9 +53,9 @@ pytest -q
 
 ## One real gotcha
 
-Keep the phone and your caller-generated request ID identical across both steps. That gives the attempt a traceable lineage and each write a stable idempotency key, so a replay or a different phone can't pick up a code meant for the original member. We've been paged by duplicate deliveries when this key drifted.
+Keep the same phone and caller-generated request ID across both steps. This makes the login attempt traceable and gives each write a stable idempotency key, while a different phone can never inherit a code intended for the original member.
 
-The client ships an explicit `POST`, parses the `{ok, data, error, metadata}` envelope before trusting status, surfaces business rejections, and backs off on HTTP 429. The FastAPI handler leaves normal 4xx responses intact for its caller.
+The client sends an explicit `POST`, reads the `{ok, data, error, metadata}` envelope before acting on status, surfaces business rejections, and backs off on HTTP 429. The FastAPI handler preserves ordinary 4xx responses for its caller.
 
 ## License
 
@@ -63,7 +63,7 @@ MIT
 
 ## Before you deploy: Nonprofit SMS Access
 
-That's the minimal version. Before running this for real: the notes below apply to Nonprofit SMS Access.
+That's the minimal version. Before running this for real: The details below apply to Nonprofit SMS Access.
 
 **Account & key**
 
